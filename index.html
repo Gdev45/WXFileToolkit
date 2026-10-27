@@ -82,7 +82,7 @@ input[type=checkbox]{background:none;box-shadow:none;padding:0}
   <div class="b4"><input id="bn" placeholder="NORTH"><input id="bs" placeholder="SOUTH"><input id="bw" placeholder="WEST"><input id="be" placeholder="EAST"></div>
   <div class="row"><label><input type="checkbox" id="bm"> Web-Mercator image</label><button id="place">Place pending</button></div>
  </div></details>
- <details open><summary>LAYERS</summary><div class="body" style="padding-top:4px"><div id="layers"><span class="dim">No data loaded</span></div></div></details>
+ <details open><summary>LAYERS</summary><div class="body" style="padding-top:4px"><label style="display:block;margin:4px 0 6px"><input type="checkbox" id="rtop" checked> Radar above borders &amp; names</label><div id="layers"><span class="dim">No data loaded</span></div></div></details>
  <details open><summary>EVENT LOG</summary><div class="body"><div id="log"></div></div></details>
 </aside>
 <main id="map"></main>
@@ -106,6 +106,8 @@ const ES='https://services.arcgisonline.com/ArcGIS/rest/services/',AT='Tiles © 
  sat=L.layerGroup([T('World_Imagery',{maxNativeZoom:17}),T('Reference/World_Boundaries_and_Places',{pane:'labels'})]),
  street=T('World_Street_Map'),topo=T('World_Topo_Map');
 /* Natural Earth 10m: state/province lines, country borders, coastline, then towns. Loads in the background. */
+map.createPane('radar').style.zIndex=470;map.getPane('radar').style.pointerEvents='none';
+$('#rtop').onchange=()=>{map.getPane('radar').style.zIndex=$('#rtop').checked?470:420}; // radar sits above borders and labels
 map.createPane('lines').style.zIndex=430;map.getPane('lines').style.pointerEvents='none';
 const NE='https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/',cr=L.canvas({pane:'lines'});
 const getJSON=f=>fetch(NE+f).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()});
@@ -178,7 +180,7 @@ function render(l,maxW=2400){
  return{cv,bounds:[[ss,w],[nn,e]]};
 }
 function addLayer(l){
- const r=render(l);l.ov=L.imageOverlay(r.cv.toDataURL(),r.bounds,{opacity:.85}).addTo(map);
+ const r=render(l);l.ov=L.imageOverlay(r.cv.toDataURL(),r.bounds,{opacity:.85,pane:'radar'}).addTo(map);
  layers.push(l);map.fitBounds(r.bounds,{maxZoom:7});drawList();log('Loaded '+l.name);
 }
 $('#mode').onchange=()=>{drawLegend();PV++;recolourSeq();layers.filter(l=>l.num&&!l.frames).forEach(l=>{const r=render(l);l.ov.setUrl(r.cv.toDataURL())})};
@@ -386,7 +388,7 @@ function endSeq(){rjob++;if(!seq)return;clearInterval(timer);timer=null;$('#pp')
  seq.frames.forEach(f=>URL.revokeObjectURL(f.url));const k=layers.indexOf(seq);if(k>=0)layers.splice(k,1);seq=null;$('#tl').hidden=true;map.invalidateSize()}
 function startSeq(label,frames){
  endSeq();const f0=frames[0];
- const ov=L.imageOverlay(f0.url,f0.bounds,{opacity:.85}).addTo(map);
+ const ov=L.imageOverlay(f0.url,f0.bounds,{opacity:.85,pane:'radar'}).addTo(map);
  seq={name:label+' · '+frames.length+' frames',frames,ov,i:0};layers.push(seq);
  $('#sl').max=frames.length-1;fillGifTimes(frames);$('#tl').hidden=false;map.invalidateSize();map.fitBounds(f0.bounds,{maxZoom:7});drawList();show(0);
 }
