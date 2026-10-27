@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WXFileToolkit</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#000;--p1:#b8b8b8;--p2:#a9a9a9;--ln:#666;--tx:#111;--dim:#444;--am:#80631a;--gr:#777;--rd:#8b2929;--face:#b8b8b8;--navy:#171717}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden}
+body{display:grid;grid-template-columns:340px 1fr;grid-template-rows:30px 1fr auto 22px;background:#000;color:var(--tx);font:12px/1.35 "Lucida Console",Consolas,monospace}
+#top{grid-column:1/3;display:flex;justify-content:space-between;align-items:center;padding:0 8px;background:linear-gradient(#292929,#111);color:#eee;border:2px solid;border-color:#777 #222 #222 #777;font-weight:700;font-size:11px;text-shadow:1px 1px #222}
+#top .dim,.dim{color:#444;font-weight:400}
+#top .dim{color:#aaa}
+#top .tb{display:flex;gap:18px;color:#ddd;font-weight:400}#top b{color:#e1c365}
+.led{display:inline-block;width:9px;height:9px;margin-right:6px;background:#777;border:1px solid #ddd;box-shadow:inset 1px 1px #444}
+.led.busy{background:#e1c365;animation:bl .5s infinite alternate}@keyframes bl{to{opacity:.35}}
+#panel{grid-row:2;overflow:auto;background:repeating-linear-gradient(0deg,#b8b8b8 0,#b8b8b8 3px,#b5b5b5 3px,#b5b5b5 4px);border:2px solid;border-color:#eee #555 #555 #eee;box-shadow:inset 1px 1px #ddd}
+#map{grid-row:2;grid-column:2;background:#000}
+#tl{grid-column:1/3;grid-row:3;display:flex;gap:8px;align-items:center;padding:5px 8px;background:var(--face);border:2px solid;border-color:#eee #555 #555 #eee}
+#tl[hidden]{display:none}#tl input[type=range]{flex:1}#tt{min-width:230px;text-align:right;color:#80631a}
+#gifFrom,#gifTo{max-width:170px}.gifRangeLabel{white-space:nowrap;font-size:10px;color:#444}
+#status{grid-column:1/3;grid-row:4;display:flex;gap:22px;align-items:center;padding:0 8px;background:#aaa;border:2px solid;border-color:#666 #eee #eee #666;color:#444;font-size:10px}
+#status span:first-child{color:#111;min-width:210px}
+details{border-bottom:1px solid #666}
+summary{list-style:none;cursor:pointer;padding:6px 8px;background:linear-gradient(90deg,#aaa,#b8b8b8 45%,#a3a3a3);color:#222;font-size:11px;font-weight:700;user-select:none;border:1px solid;border-color:#eee #666 #666 #eee;text-shadow:1px 1px #ccc}
+summary::-webkit-details-marker{display:none}summary::before{content:'+';display:inline-block;width:15px;color:#80631a}details[open]>summary::before{content:'−'}
+.body{padding:9px}
+input,select,button{font:inherit;color:#111;background:#d0d0d0;border:1px solid;border-color:#555 #eee #eee #555;border-radius:0;padding:4px 6px;min-width:0;box-shadow:inset 1px 1px #999}
+button{cursor:pointer;background:linear-gradient(#d0d0d0,#aaa);border:2px solid;border-color:#eee #555 #555 #eee;padding:3px 8px;text-shadow:1px 1px #ddd}
+button:hover{color:#604a18;background:linear-gradient(#ddd,#b8b8b8)}button:active{border-color:#555 #eee #eee #555;padding:4px 7px 2px 9px}
+input:focus,select:focus{outline:1px dotted #222;outline-offset:-4px}
+input[type=range]{accent-color:#80631a;padding:0}
+#drop{border:1px dashed #666;padding:12px 8px;text-align:center;cursor:pointer;color:#444;line-height:1.6;background:repeating-linear-gradient(135deg,#aaa 0,#aaa 4px,#b3b3b3 4px,#b3b3b3 8px)}
+#drop:hover,#drop.on{border-color:#80631a;color:#604a18;background:#c0c0c0}#drop b{color:#111}
+.row{display:flex;gap:6px;margin-top:8px;align-items:center}.row>*:first-child{flex:1}
+.lbl{color:#444;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.b4{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px}.b4 input{width:100%}
+#legend{display:block;margin-top:8px;border:2px inset #aaa;width:100%;height:32px;background:#d0d0d0}
+#palinfo{color:#444;font-size:10px;margin-top:4px;min-height:14px}
+.lyr{margin-top:6px;padding:6px;border:2px groove #eee;background:#aaa;box-shadow:inset 1px 1px #c5c5c5}
+.lyr b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400;color:#111}
+.lyr .row{margin-top:5px}.lyr input[type=range]{flex:1}
+#log{max-height:150px;overflow:auto;font-size:10px;color:#444}#log div{margin-top:3px}#log .err{color:#8b2929}#st{display:block;color:#80631a;padding:4px 9px;font-size:10px}
+.leaflet-container{font:inherit;background:#000}
+.leaflet-bar{border:2px solid;border-color:#eee #555 #555 #eee!important;box-shadow:1px 1px 2px #111!important;border-radius:0!important}
+.leaflet-bar a{background:var(--face);color:#111;border-bottom:1px solid #666;border-radius:0!important}.leaflet-bar a:hover{background:#d0d0d0;color:#80631a}
+.leaflet-control-layers{background:var(--face);color:#111;border:2px solid!important;border-color:#eee #555 #555 #eee!important;border-radius:0;box-shadow:1px 1px 2px #111}
+.leaflet-control-layers-toggle{filter:grayscale(1)}
+.leaflet-control-attribution{background:#aaaE!important;color:#444!important}.leaflet-control-attribution a{color:#333!important}
+.leaflet-control-scale-line{background:#aaaE;color:#111;border-color:#111;font-size:10px}
+</style></head><body>
+<header id="top">
+ <div><span class="led" id="led"></span>RADAR WORKSTATION <span class="dim">/ MULTI-FORMAT VIEWER</span></div>
+ <div class="tb"><span>LAYERS <b id="nl">0</b></span><span>ZOOM <b id="zm">3</b></span><span id="clock">--:--:-- UTC</span></div>
+</header>
+<aside id="panel">
+ <details open><summary>DATA INPUT</summary><div class="body">
+  <div id="drop">DROP FILES HERE OR CLICK TO BROWSE<br><span style="font-size:10.5px">NIMROD · GEOTIFF · PNG/GIF/JPG + WORLD FILE · .GZ · .PAL<br><b>.TAR / .TAR.GZ → TIMELINE</b></span></div>
+  <input id="file" type="file" multiple hidden>
+  <div class="row"><input id="url" type="text" placeholder="FILE URL (CORS PERMITTING)"><button id="go">Load</button></div>
+ </div><small id="st"></small></details>
+ <details open><summary>COLOUR TABLE</summary><div class="body">
+  <div class="row" style="margin-top:0"><select id="mode"><option value="rain">Built-in · Rain rate mm/h</option><option value="dbz">Built-in · Reflectivity dBZ</option></select><button id="palbtn">Load .pal</button></div>
+  <input id="palfile" type="file" accept=".pal,.txt" multiple hidden>
+  <div class="row"><span class="lbl">Rain-rate data → table</span><select id="conv"><option value="auto">Auto (dBZ tables convert)</option><option value="raw">Raw value (mm/h)</option><option value="dbz">Convert mm/h → dBZ</option></select></div>
+  <canvas id="legend" width="320" height="32"></canvas><div id="palinfo"></div>
+ </div></details>
+ <details><summary>GEOREFERENCE · PLAIN IMAGES</summary><div class="body">
+  <span class="lbl">Bounds in degrees, for images without a world file</span>
+  <div class="b4"><input id="bn" placeholder="NORTH"><input id="bs" placeholder="SOUTH"><input id="bw" placeholder="WEST"><input id="be" placeholder="EAST"></div>
+  <div class="row"><label><input type="checkbox" id="bm"> Web-Mercator image</label><button id="place">Place pending</button></div>
+ </div></details>
+ <details open><summary>LAYERS</summary><div class="body" style="padding-top:4px"><div id="layers"><span class="dim">No data loaded</span></div></div></details>
+ <details open><summary>EVENT LOG</summary><div class="body"><div id="log"></div></div></details>
+</aside>
+<main id="map"></main>
+<div id="tl" hidden><button id="pp">▶</button><input id="sl" type="range" min="0" max="0" value="0"><span id="tt"></span><select id="spd"><option value="1000">Slow</option><option value="400" selected>Normal</option><option value="150">Fast</option></select><span class="gifRangeLabel">GIF FROM</span><select id="gifFrom" aria-label="GIF start time"></select><span class="gifRangeLabel">TO</span><select id="gifTo" aria-label="GIF end time"></select><button id="gifExport">Save</button></div>
+<footer id="status"><span id="pos">LAT –  LON –</span><span>SCALE: WEB MERCATOR</span><span>ARROWS: STEP FRAMES</span></footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+<script>
+const $=s=>document.querySelector(s),D=Math.PI/180,MAXLAT=85.0511,R3857=6378137;
+const map=L.map('map',{zoomControl:false,worldCopyJump:true}).setView([40,-20],3);
+L.control.zoom({position:'bottomright'}).addTo(map);
+/* Key-free Esri basemaps; labels sit in their own pane above the radar overlay */
+map.createPane('labels').style.zIndex=450;map.getPane('labels').style.pointerEvents='none';
+const ES='https://services.arcgisonline.com/ArcGIS/rest/services/',AT='Tiles © Esri',
+ T=(p,o={})=>L.tileLayer(ES+p+'/MapServer/tile/{z}/{y}/{x}',{attribution:AT,maxNativeZoom:16,maxZoom:18,...o}),
+ dark=L.layerGroup([T('Canvas/World_Dark_Gray_Base'),T('Canvas/World_Dark_Gray_Reference',{pane:'labels'})]).addTo(map),
+ sat=L.layerGroup([T('World_Imagery',{maxNativeZoom:17}),T('Reference/World_Boundaries_and_Places',{pane:'labels'})]),
+ street=T('World_Street_Map'),topo=T('World_Topo_Map');
+L.control.layers({'Dark gray':dark,'Satellite':sat,'Streets':street,'Topo':topo},null,{position:'topright'}).addTo(map);
+map.on('mousemove',e=>$('#pos').textContent='LAT '+e.latlng.lat.toFixed(3)+'  LON '+e.latlng.wrap().lng.toFixed(3));
+map.on('zoomend',()=>$('#zm').textContent=map.getZoom());
+L.control.scale({position:'bottomleft',imperial:false}).addTo(map);
+setInterval(()=>$('#clock').textContent=new Date().toISOString().slice(11,19)+' UTC',1000);
+const log=(m,err)=>{const d=document.createElement('div');d.textContent=new Date().toISOString().slice(11,19)+'  '+m;if(err)d.className='err';$('#log').prepend(d);while($('#log').children.length>6)$('#log').lastChild.remove()};
+const mercY=l=>Math.log(Math.tan(Math.PI/4+l*D/2));
+
+/* ---------- colour ramps ---------- */
+const RAMPS={
+ rain:[[.1,[150,200,255]],[.5,[50,120,255]],[1,[0,190,80]],[2,[170,220,0]],[4,[255,230,0]],[8,[255,150,0]],[16,[240,40,20]],[32,[220,0,200]],[64,[255,255,255]]],
+ dbz:[[5,[100,200,255]],[15,[0,150,255]],[20,[0,200,0]],[30,[250,240,0]],[40,[255,140,0]],[50,[230,0,0]],[60,[200,0,200]],[70,[255,255,255]]]};
+const PALS={};
+function ramp(mode,v){const P=PALS[mode];
+ if(P){if(v<P.min)return null;return P.lut[Math.min(P.lut.length-1,((v-P.min)*P.k)|0)]}
+ let c=null;for(const s of RAMPS[mode]){if(v>=s[0])c=s[1];else break}return c}
+/* Nimrod holds rain rate (mm/h); most .pal files are in dBZ, so convert with Marshall-Palmer Z=200R^1.6 */
+function convOn(l,mode){const c=$('#conv').value,P=PALS[mode];
+ if(!l.num||c==='raw')return false;if(c==='dbz')return true;
+ return !!l.rr&&(mode==='dbz'||!!(P&&P.dbz))}
+function autoMode(m){if(!PALS[$('#mode').value])$('#mode').value=m;drawLegend()}
+
+/* ---------- layers & rendering (everything resamples to a Web-Mercator canvas) ---------- */
+const layers=[];let pending=[];
+let MC={},PV=0,rjob=0; // PV = colour-table version; bumps whenever the palette/scale changes
+function render(l,maxW=2400){
+ const [s,w,n,e]=l.b,ss=Math.max(s,-MAXLAT),nn=Math.min(n,MAXLAT),y0=mercY(ss),y1=mercY(nn);
+ let W=Math.min(maxW,Math.max(256,l.nx)),H=Math.max(2,Math.round(W*(y1-y0)/((e-w)*D)));
+ if(H>3000){W=Math.round(W*3000/H);H=3000}
+ const cv=document.createElement('canvas');cv.width=W;cv.height=H;
+ const cx=cv.getContext('2d'),im=cx.createImageData(W,H),d=im.data,mode=$('#mode').value;
+ const cvt=convOn(l,mode);
+ const mk=l.key&&l.key+'|'+W+'x'+H;let M=null,build=false;
+ if(mk){if(MC.k===mk)M=MC.m;else{M=new Int32Array(W*H);build=true;MC={k:mk,m:M}}}
+ for(let j=0;j<H;j++){
+  const lat=(2*Math.atan(Math.exp(y1-(j+.5)/H*(y1-y0)))-Math.PI/2)/D;
+  for(let i=0;i<W;i++){
+   const lon=w+(i+.5)/W*(e-w);let v;
+   if(M){const q=j*W+i;if(build)M[q]=l.ix(lat,lon);const ii=M[q];v=ii<0?null:l.vals[ii];if(v!==v)v=null}else v=l.get(lat,lon);
+   if(v==null)continue;
+   let c;if(l.num){let u=v;if(cvt){if(v<=0)continue;u=10*Math.log10(200*Math.pow(v,1.6))}c=ramp(mode,u)}else c=v;if(!c)continue;
+   const k=(j*W+i)*4;d[k]=c[0];d[k+1]=c[1];d[k+2]=c[2];d[k+3]=c[3]===undefined?210:c[3];
+  }}
+ cx.putImageData(im,0,0);
+ return{cv,bounds:[[ss,w],[nn,e]]};
+}
+function addLayer(l){
+ const r=render(l);l.ov=L.imageOverlay(r.cv.toDataURL(),r.bounds,{opacity:.85}).addTo(map);
+ layers.push(l);map.fitBounds(r.bounds,{maxZoom:7});drawList();log('Loaded '+l.name);
+}
+$('#mode').onchange=()=>{drawLegend();PV++;recolourSeq();layers.filter(l=>l.num&&!l.frames).forEach(l=>{const r=render(l);l.ov.setUrl(r.cv.toDataURL())})};
+function drawList(){
+ const box=$('#layers');box.innerHTML=layers.length?'':'<span class="dim">No data loaded</span>';$('#nl').textContent=layers.length;
+ layers.forEach((l,i)=>{
+  const d=document.createElement('div');d.className='lyr';
+  d.innerHTML='<b></b><div class="row"><input type="range" min="0" max="1" step=".05"><button title="Zoom to">⌖</button><button title="Remove">✕</button></div>';
+  d.querySelector('b').textContent=l.name;
+  const [rg,fit,del]=d.querySelectorAll('input,button');rg.value=l.ov.options.opacity;
+  rg.oninput=()=>l.ov.setOpacity(+rg.value);fit.onclick=()=>map.fitBounds(l.ov.getBounds());
+  del.onclick=()=>{if(l===seq)endSeq();else{l.ov.remove();layers.splice(i,1)}drawList()};box.appendChild(d)});
+}
+
+/* ---------- Image loader (PNG/GIF/JPG/WebP + world file or manual bounds) ---------- */
+async function fromImage(buf,name,wf,man,merc){
+ const bmp=await createImageBitmap(new Blob([buf]));const W=bmp.width,H=bmp.height;
+ const c=document.createElement('canvas');c.width=W;c.height=H;
+ const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(bmp,0,0);
+ const px=x.getImageData(0,0,W,H).data;let b;
+ if(wf){const A=wf[0],E=wf[3],C=wf[4],F=wf[5],x0=C-A/2,y0=F-E/2,x1=x0+A*W,y1=y0+E*H;
+  let X=[Math.min(x0,x1),Math.max(x0,x1)],Y=[Math.min(y0,y1),Math.max(y0,y1)];
+  if(Math.abs(X[1])>360||Math.abs(Y[1])>180){ // EPSG:3857 world file
+   const lo=v=>v/R3857/D,la=v=>(2*Math.atan(Math.exp(v/R3857))-Math.PI/2)/D;
+   b=[la(Y[0]),lo(X[0]),la(Y[1]),lo(X[1])];merc=true}else b=[Y[0],X[0],Y[1],X[1]];
+ }else b=man;
+ const my0=mercY(Math.max(b[0],-MAXLAT)),my1=mercY(Math.min(b[2],MAXLAT));
+ return{name,b,nx:W,get(lat,lon){
+  if(lat<b[0]||lat>b[2]||lon<b[1]||lon>b[3])return null;
+  const fy=merc?(my1-mercY(lat))/(my1-my0):(b[2]-lat)/(b[2]-b[0]);
+  const ix=Math.min(W-1,(lon-b[1])/(b[3]-b[1])*W|0),iy=Math.min(H-1,Math.max(0,fy*H|0)),k=(iy*W+ix)*4;
+  return px[k+3]?[px[k],px[k+1],px[k+2],px[k+3]]:null}};
+}
+
+/* ---------- GeoTIFF (lat/lon or Web Mercator; scalar or RGB) ---------- */
+async function fromTiff(buf,name){
+ if(!window.GeoTIFF)throw Error('geotiff.js did not load (check your connection)');
+ const t=await GeoTIFF.fromArrayBuffer(buf),im=await t.getImage();
+ const [w,s,e,n]=im.getBoundingBox(),W=im.getWidth(),H=im.getHeight(),spp=im.getSamplesPerPixel();
+ const gk=im.getGeoKeys()||{},epsg=gk.ProjectedCSTypeGeoKey||gk.GeographicTypeGeoKey;
+ const merc=Math.abs(w)>360||Math.abs(e)>360;
+ if(merc&&![3857,900913,102100,102113].includes(epsg))throw Error('Unsupported projection EPSG:'+epsg+' (lat/lon and Web Mercator only)');
+ const r=await im.readRasters({interleave:true}),nd=im.getGDALNoData();
+ const lo=v=>v/R3857/D,la=v=>(2*Math.atan(Math.exp(v/R3857))-Math.PI/2)/D;
+ const b=merc?[la(s),lo(w),la(n),lo(e)]:[s,w,n,e];
+ autoMode('dbz');
+ return{name,b,nx:W,num:spp<3,get(lat,lon){
+  if(!merc&&lon<w&&e>180)lon+=360;
+  let ix,iy;
+  if(merc){const X=lon*D*R3857,Y=R3857*mercY(lat);ix=(X-w)/(e-w)*W|0;iy=(n-Y)/(n-s)*H|0}
+  else{ix=(lon-w)/(e-w)*W|0;iy=(n-lat)/(n-s)*H|0}
+  if(ix<0||iy<0||ix>=W||iy>=H)return null;
+  const k=(iy*W+ix)*spp;
+  if(spp>=3){const a=spp>3?r[k+3]:255;return a?[r[k],r[k+1],r[k+2],a]:null}
+  const v=r[k];return(v==null||v!==v||v===nd)?null:v}};
+}
+
+/* ---------- Met Office NIMROD (UK National Grid or lat/lon), big-endian ---------- */
+function toOSGB(lat,lon){
+ const p=lat*D,l=lon*D,e2w=0.00669437999014,aw=6378137;
+ let nu=aw/Math.sqrt(1-e2w*Math.sin(p)**2);
+ let X=nu*Math.cos(p)*Math.cos(l),Y=nu*Math.cos(p)*Math.sin(l),Z=nu*(1-e2w)*Math.sin(p);
+ const s=20.4894e-6,rx=-0.1502/3600*D,ry=-0.2470/3600*D,rz=-0.8421/3600*D;
+ const x2=-446.448+X*(1+s)-Y*rz+Z*ry,y2=125.157+X*rz+Y*(1+s)-Z*rx,z2=-542.06-X*ry+Y*rx+Z*(1+s);
+ const a=6377563.396,b=6356256.909,F0=0.9996012717,e2=1-b*b/(a*a),n=(a-b)/(a+b);
+ const pp=Math.hypot(x2,y2);let f=Math.atan2(z2,pp*(1-e2));
+ for(let i=0;i<6;i++){const v=a/Math.sqrt(1-e2*Math.sin(f)**2);f=Math.atan2(z2+e2*v*Math.sin(f),pp)}
+ const L=Math.atan2(y2,x2),f0=49*D,l0=-2*D,sf=Math.sin(f),cf=Math.cos(f),tf=Math.tan(f);
+ nu=a*F0/Math.sqrt(1-e2*sf*sf);const rho=a*F0*(1-e2)/Math.pow(1-e2*sf*sf,1.5),h2=nu/rho-1;
+ const M=b*F0*((1+n+1.25*n*n+1.25*n**3)*(f-f0)-(3*n+3*n*n+21/8*n**3)*Math.sin(f-f0)*Math.cos(f+f0)+(15/8*n*n+15/8*n**3)*Math.sin(2*(f-f0))*Math.cos(2*(f+f0))-35/24*n**3*Math.sin(3*(f-f0))*Math.cos(3*(f+f0)));
+ const c3=cf**3,c5=cf**5,t2=tf*tf,t4=t2*t2,dl=L-l0;
+ const N=M-100000+nu/2*sf*cf*dl**2+nu/24*sf*c3*(5-t2+9*h2)*dl**4+nu/720*sf*c5*(61-58*t2+t4)*dl**6;
+ const E=400000+nu*cf*dl+nu/6*c3*(nu/rho-t2)*dl**3+nu/120*c5*(5-18*t2+t4+14*h2-58*t2*h2)*dl**5;
+ return[E,N];
+}
+let NG={};
+function fromNimrod(buf,name){
+ const dv=new DataView(buf),g=i=>dv.getInt16(4+i*2),f=i=>dv.getFloat32(66+i*4);
+ const gt=g(14),R=g(15),C=g(16),len=g(12),off=524;
+ if(gt!==0&&gt!==1)throw Error('Nimrod grid type '+gt+' not supported (UK grid & lat/lon only)');
+ const y0=f(2),ady=Math.abs(f(3)),x0=f(4),dx=Math.abs(f(5));
+ const hdr=`rows=${R} cols=${C} len=${len} grid=${gt} y0=${y0} dy=${f(3)} x0=${x0} dx=${f(5)}`;
+ if(!(R>0&&C>0&&ady>0&&dx>0&&isFinite(y0)&&isFinite(x0)))throw Error('Unexpected Nimrod header ('+hdr+')');
+ const vals=new Float32Array(R*C);
+ for(let i=0;i<R*C;i++){let v=len===2?dv.getInt16(off+i*2):len===4?dv.getFloat32(off+i*4):dv.getUint8(off+i);
+  vals[i]=v<0?NaN:(len===2?v/32:v)} // int16 radar rain rate is mm/h x 32
+ if(NG.key!==hdr){ // grid geometry is identical across a day's files, so work it out once
+  const mkix=(top,osgb)=>{const row=v=>Math.floor(top?(y0-v)/ady:(v-y0)/ady),col=v=>Math.floor((v-x0)/dx);
+   return(lat,lon)=>{let X=lon,Y=lat;if(osgb)[X,Y]=toOSGB(lat,lon);const ix=col(X),iy=row(Y);return(ix<0||iy<0||ix>=C||iy>=R)?-1:iy*C+ix}};
+  if(gt===1){const top=y0-ady*R>=-90;
+   NG={key:hdr,b:top?[y0-ady*R,x0,y0,x0+dx*C]:[y0,x0,y0+ady*R,x0+dx*C],ix:mkix(top,false)}}
+  else{let best=null;
+   for(const top of [true,false]){const ix=mkix(top,true);let a=[90,180,-90,-180],cnt=0;
+    for(let la=48;la<62;la+=.1)for(let lo=-12;lo<5;lo+=.1)if(ix(la,lo)>=0){cnt++;a=[Math.min(a[0],la),Math.min(a[1],lo),Math.max(a[2],la),Math.max(a[3],lo)]}
+    if(cnt&&(!best||cnt>best.cnt))best={cnt,ix,b:[a[0]-.1,a[1]-.1,a[2]+.1,a[3]+.1]}}
+   if(!best)throw Error('Could not place Nimrod grid on the map ('+hdr+')');
+   NG={key:hdr,b:best.b,ix:best.ix}}
+ }
+ autoMode('rain');
+ const T=Date.UTC(g(0),g(1)-1,g(2),g(3),g(4)),ix=NG.ix;
+ return{name:name+' · '+new Date(T).toISOString().slice(0,16).replace('T',' ')+'Z',time:T,b:NG.b,nx:Math.round(C*1.3),num:true,rr:true,key:hdr,ix,vals,
+  get:(la,lo)=>{const k=ix(la,lo);if(k<0)return null;const v=vals[k];return v!==v?null:v}};
+}
+
+/* ---------- dispatch ---------- */
+async function gunzip(buf){const u=new Uint8Array(buf);if(u[0]!==0x1f||u[1]!==0x8b)return buf;
+ return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer()}
+const man=()=>{const v=['bs','bw','bn','be'].map(i=>parseFloat($('#'+i).value));return v.some(isNaN)?null:v};
+async function handle(file,wf){
+ const buf=await gunzip(await file.arrayBuffer());
+ if(buf.byteLength>262&&new TextDecoder().decode(new Uint8Array(buf,257,5))==='ustar')return loadTar(buf,file.name);
+ addLayer(await decode(file.name.replace(/\.gz$/i,''),buf,wf));
+}
+async function decode(name,buf,wf){
+ const u=new Uint8Array(buf);
+ const asc=String.fromCharCode(...u.slice(0,8));let l;
+ if(u[0]===0x89&&asc.slice(1,4)==='PNG'||u[0]===0xff&&u[1]===0xd8||asc.startsWith('GIF8')||asc.startsWith('RIFF')){
+  const m=man();if(!wf&&!m){pending.push({buf,name});throw Error('No world file – enter bounds under "Georeference plain images", then Place pending')}
+  l=await fromImage(buf,name,wf,m,$('#bm').checked)}
+ else if((u[0]===73&&u[1]===73&&(u[2]===42||u[2]===43))||(u[0]===77&&u[1]===77&&(u[3]===42||u[3]===43)))l=await fromTiff(buf,name);
+ else if(u[0]===0&&u[1]===0&&u[2]===2&&u[3]===0)l=fromNimrod(buf,name);
+ else{const k=asc.startsWith('GRIB')?'GRIB/GRIB2':asc.slice(1,4)==='HDF'?'HDF5/NetCDF4/ODIM':asc.startsWith('CDF')?'NetCDF':/^(AR2V|ARCH)/.test(asc)?'NEXRAD Level II':/^(SDUS|SDUE|\r\r\n|\x01\r\r)/.test(asc)?'NEXRAD Level III':null;
+  throw Error(k?k+' recognised but not supported in this build':'Unrecognised file format')}
+ return l;
+}
+async function loadFiles(files){
+ const wfs={},data=[];
+ for(const f of [...files]){if(/\.pal$/i.test(f.name)){try{addPal(f.name,await f.text())}catch(e){log(f.name+': '+e.message,1)}continue}const m=f.name.match(/^(.*)\.(pgw|pngw|gfw|gifw|jgw|jpgw|jpegw|wld|tfw)$/i);
+  if(m){const n=(await f.text()).trim().split(/\s+/).map(Number);if(n.length>=6)wfs[m[1].toLowerCase()]=n}else data.push(f)}
+ if(data.length>1&&!data.some(f=>/\.(tar|tgz)(\.gz)?$/i.test(f.name)))return loadSeq(await Promise.all(data.map(async f=>({name:f.name,data:await f.arrayBuffer()}))),wfs,data.length+' files').catch(e=>log(e.message,1));
+ for(const f of data){const key=f.name.replace(/\.gz$/i,'').replace(/\.[^.]+$/,'').toLowerCase();
+  try{await handle(f,wfs[key])}catch(e){log(f.name+': '+e.message,1)}}
+}
+$('#place').onclick=async()=>{const p=pending;pending=[];const m=man();if(!m)return log('Fill in all four bounds first',1);
+ for(const x of p)try{addLayer(await fromImage(x.buf,x.name,null,m,$('#bm').checked))}catch(e){log(e.message,1)}};
+$('#go').onclick=async()=>{const u=$('#url').value.trim();if(!u)return;
+ try{const r=await fetch(u);if(!r.ok)throw Error('HTTP '+r.status);
+  const f=new File([await r.blob()],u.split('/').pop().split('?')[0]||'remote'),fs=[f];
+  const wm={gif:'gfw',png:'pgw',jpg:'jgw',jpeg:'jgw'}[f.name.split('.').pop().toLowerCase()];
+  if(wm)try{const wr=await fetch(u.replace(/\.[^./?]+(\?.*)?$/,'.'+wm));if(wr.ok)fs.push(new File([await wr.blob()],f.name.replace(/\.[^.]+$/,'.'+wm)))}catch{}
+  loadFiles(fs)}catch(e){log('Fetch failed ('+e.message+'). The server may block cross-origin requests – download the file and drop it here.',1)}};
+const dz=$('#drop');dz.onclick=()=>$('#file').click();$('#file').onchange=e=>loadFiles(e.target.files);
+['dragover','dragenter'].forEach(t=>addEventListener(t,e=>{e.preventDefault();dz.classList.add('on')}));
+['dragleave','drop'].forEach(t=>addEventListener(t,e=>{e.preventDefault();dz.classList.remove('on')}));
+addEventListener('drop',e=>loadFiles(e.dataTransfer.files));
+
+/* ---------- TAR archives & timeline ---------- */
+function parseTar(buf){
+ const u=new Uint8Array(buf),td=new TextDecoder(),out=[];let o=0,longName=null;
+ const str=(a,b)=>td.decode(u.subarray(a,b)).replace(/\0[\s\S]*$/,'');
+ while(o+512<=u.length&&u[o]!==0){
+  let name=str(o,o+100);const pre=str(o+345,o+500);if(pre&&str(o+257,o+262)==='ustar')name=pre+'/'+name;
+  const size=parseInt(str(o+124,o+136).trim(),8)||0,type=String.fromCharCode(u[o+156]);o+=512;
+  const data=buf.slice(o,o+size);o+=Math.ceil(size/512)*512;
+  if(type==='L'){longName=td.decode(data).replace(/\0[\s\S]*$/,'');continue}
+  if(longName){name=longName;longName=null}
+  if((type==='0'||type==='\0')&&size&&!/(^|\/)(\._|__MACOSX)/.test(name))out.push({name:name.split('/').pop(),data});
+ }
+ return out;
+}
+const fileTime=n=>{const m=n.match(/(20\d\d)(\d\d)(\d\d)[_T-]?(\d\d)(\d\d)/);return m?Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]):null};
+async function loadTar(buf,tarName){
+ const wfs={},data=[];
+ for(const e of parseTar(buf)){if(/\.pal$/i.test(e.name)){try{addPal(e.name,new TextDecoder().decode(e.data))}catch{}continue}const m=e.name.match(/^(.*)\.(pgw|pngw|gfw|gifw|jgw|jpgw|jpegw|wld|tfw)$/i);
+  if(m){const n=new TextDecoder().decode(e.data).trim().split(/\s+/).map(Number);if(n.length>=6)wfs[m[1].toLowerCase()]=n}else data.push(e)}
+ return loadSeq(data,wfs,tarName);
+}
+async function loadSeq(data,wfs,label){
+ data.sort((a,b)=>a.name<b.name?-1:1);$('#led').classList.add('busy');
+ const frames=[],keep=pending.length;let bad=0;
+ for(let i=0;i<data.length;i++){
+  const e=data[i],nm=e.name.replace(/\.gz$/i,'');$('#st').textContent='Rendering frame '+(i+1)+' / '+data.length+'…';
+  try{const wf=wfs[nm.replace(/\.[^.]+$/,'').toLowerCase()],l=await decode(nm,await gunzip(e.data),wf);
+   const r=render(l,1400),blob=await new Promise(res=>r.cv.toBlob(res));
+   frames.push({t:l.time??fileTime(nm),name:nm,url:URL.createObjectURL(blob),bounds:r.bounds,wf,num:!!l.num,ver:PV,src:await pack(e.data)})}
+  catch(err){bad++;if(bad<=3)log(e.name+': '+err.message,1)}
+  await new Promise(r=>setTimeout(r));
+ }
+ pending.length=keep;$('#st').textContent='';$('#led').classList.remove('busy');
+ if(!frames.length)throw Error('No readable radar files in '+label);
+ frames.sort((a,b)=>(a.t??0)-(b.t??0)||(a.name<b.name?-1:1));
+ startSeq(label,frames);log('Loaded '+frames.length+' frames'+(bad?' ('+bad+' skipped)':''));
+}
+let seq=null,timer=null;
+/* Keep each frame's source file (gzipped) so the whole timeline can be re-coloured when the .pal changes */
+async function pack(buf){const u=new Uint8Array(buf);if(u[0]===0x1f&&u[1]===0x8b)return buf;
+ return new Response(new Blob([buf]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer()}
+async function renderFrame(f){
+ const pv=PV,l=await decode(f.name,await gunzip(f.src),f.wf),r=render(l,1400),blob=await new Promise(res=>r.cv.toBlob(res));
+ if(pv!==PV)return; // superseded by a newer palette change
+ const old=f.url;f.url=URL.createObjectURL(blob);f.bounds=r.bounds;f.ver=pv;
+ if(seq&&seq.frames[seq.i]===f)seq.ov.setUrl(f.url);
+ URL.revokeObjectURL(old);
+}
+async function recolourSeq(){ // current frame first, then the rest, in the background
+ if(!seq)return;const job=++rjob,fr=seq.frames,n=fr.length,led=$('#led');led.classList.add('busy');
+ for(let k=0;k<n;k++){
+  if(job!==rjob)return;const f=fr[(seq.i+k)%n];if(f.ver===PV||!f.num)continue;
+  $('#st').textContent='Re-colouring frame '+(k+1)+' / '+n+'…';
+  try{await renderFrame(f)}catch(e){log(f.name+': '+e.message,1)}
+ }
+ if(job===rjob){$('#st').textContent='';led.classList.remove('busy')}
+}
+function endSeq(){rjob++;if(!seq)return;clearInterval(timer);timer=null;$('#pp').textContent='▶';seq.ov.remove();
+ seq.frames.forEach(f=>URL.revokeObjectURL(f.url));const k=layers.indexOf(seq);if(k>=0)layers.splice(k,1);seq=null;$('#tl').hidden=true;map.invalidateSize()}
+function startSeq(label,frames){
+ endSeq();const f0=frames[0];
+ const ov=L.imageOverlay(f0.url,f0.bounds,{opacity:.85}).addTo(map);
+ seq={name:label+' · '+frames.length+' frames',frames,ov,i:0};layers.push(seq);
+ $('#sl').max=frames.length-1;fillGifTimes(frames);$('#tl').hidden=false;map.invalidateSize();map.fitBounds(f0.bounds,{maxZoom:7});drawList();show(0);
+}
+function fillGifTimes(frames){
+ for(const id of ['gifFrom','gifTo']){
+  const select=$('#'+id);select.replaceChildren();
+  frames.forEach((f,i)=>{
+   const o=document.createElement('option'),t=f.t!=null?new Date(f.t).toISOString().slice(0,16).replace('T',' ')+'Z':f.name;
+   o.value=i;o.textContent=t+' ('+(i+1)+')';select.appendChild(o);
+  });
+ }
+ $('#gifFrom').value='0';$('#gifTo').value=String(frames.length-1);
+}
+function show(i){if(!seq)return;const n=seq.frames.length;i=(i+n)%n;seq.i=i;const f=seq.frames[i];
+ seq.ov.setUrl(f.url);$('#sl').value=i;
+ $('#tt').textContent=(f.t!=null?new Date(f.t).toISOString().slice(0,16).replace('T',' ')+'Z':f.name)+'  ('+(i+1)+'/'+n+')';
+ new Image().src=seq.frames[(i+1)%n].url}
+function play(on){clearInterval(timer);timer=null;$('#pp').textContent=on?'⏸':'▶';if(on)timer=setInterval(()=>show(seq.i+1),+$('#spd').value)}
+$('#pp').onclick=()=>play(!timer);$('#spd').onchange=()=>{if(timer)play(true)};
+$('#sl').oninput=()=>{play(false);show(+$('#sl').value)};
+$('#gifExport').onclick=async()=>{
+ if(!seq)return;
+ const start=+$('#gifFrom').value,end=+$('#gifTo').value;
+ if(!Number.isInteger(start)||!Number.isInteger(end)||start>=end){log('Choose a start time before the end time (at least two frames)',1);return}
+ if(typeof GIF!=='function'){log('GIF encoder did not load; check your connection and reload the page',1);return}
+ play(false);const frames=seq.frames.slice(start,end+1),button=$('#gifExport'),status=$('#st');
+ let workerUrl;
+ button.disabled=true;button.textContent='Wait…';
+ try{
+  const first=await loadGifImage(frames[0].url),scale=Math.min(1,1000/Math.max(first.naturalWidth,first.naturalHeight));
+  const width=Math.max(1,Math.round(first.naturalWidth*scale)),height=Math.max(1,Math.round(first.naturalHeight*scale));
+  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+  const ctx=canvas.getContext('2d');
+  workerUrl=URL.createObjectURL(new Blob(["importScripts('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js')"],{type:'application/javascript'}));
+  const gif=new GIF({workers:2,quality:10,width,height,repeat:0,background:'#000',
+   workerScript:workerUrl});
+  for(let i=0;i<frames.length;i++){
+   const image=i===0?first:await loadGifImage(frames[i].url);
+   ctx.clearRect(0,0,width,height);ctx.drawImage(image,0,0,width,height);
+   gif.addFrame(canvas,{copy:true,delay:+$('#spd').value});
+   status.textContent='Preparing GIF frame '+(i+1)+' / '+frames.length+'…';
+  }
+  const blob=await new Promise((resolve,reject)=>{
+   const timeout=setTimeout(()=>reject(Error('GIF encoding timed out')),120000);
+   gif.on('progress',p=>status.textContent='Encoding GIF '+Math.round(p*100)+'%…');
+   gif.on('finished',blob=>{clearTimeout(timeout);resolve(blob)});
+   gif.on('abort',()=>{clearTimeout(timeout);reject(Error('GIF encoding was aborted'))});gif.render();
+  });
+  const a=document.createElement('a'),url=URL.createObjectURL(blob);
+  a.href=url;a.download='radar-frames-'+(start+1)+'-'+(end+1)+'.gif';document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);log('Saved GIF with '+frames.length+' frames');
+ }catch(e){log('GIF export failed: '+e.message,1)}
+ finally{if(workerUrl)URL.revokeObjectURL(workerUrl);button.disabled=false;button.textContent='Save';status.textContent=''}
+};
+function loadGifImage(url){
+ return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(Error('Could not load a radar frame for GIF export'));image.src=url});
+}
+addEventListener('keydown',e=>{if(seq&&(e.target.tagName!=='INPUT'||e.target.type==='range')){if(e.key==='ArrowRight'){play(false);show(seq.i+1)}if(e.key==='ArrowLeft'){play(false);show(seq.i-1)}}});
+
+/* ---------- custom .pal colour tables (GRLevelX / GR2Analyst style) ---------- */
+function addPal(fname,text){
+ const E=[],meta={},name=fname.replace(/\.pal$/i,'');
+ for(let line of text.split(/\r?\n/)){
+  line=line.replace(/;.*$/,'').trim();const m=line.match(/^(\w+)\s*:\s*(.+)$/);if(!m)continue;
+  const key=m[1].toLowerCase(),a=m[2].trim().split(/[\s,]+/).map(Number);
+  if(/^(solid)?color4?$/.test(key)){
+   const n=key.endsWith('4')?4:3,c=a.slice(1,1+n),c2=a.slice(1+n,1+2*n);
+   if(isNaN(a[0])||c.length<n||c.some(isNaN))continue;
+   const pad=x=>n===3?[...x,210]:x;
+   E.push({v:a[0],c1:pad(c),c2:c2.length===n&&!c2.some(isNaN)?pad(c2):null,solid:key.startsWith('solid')});
+  }else meta[key]=m[2].trim();
+ }
+ E.sort((p,q)=>p.v-q.v);
+ if(E.length<2||E[E.length-1].v<=E[0].v)throw Error(/^JASC-PAL/i.test(text)?'JASC/PaintShop palettes have no value scale – use a GR-style Color: table':'no usable Color/SolidColor entries');
+ const min=E[0].v,max=E[E.length-1].v,N=4096,k=(N-1)/(max-min),lut=[];let s=0;
+ for(let i=0;i<N;i++){
+  const x=min+i/k;
+  if(x>=max){const l=E[E.length-1];lut.push(l.c2||l.c1);continue}
+  while(s<E.length-2&&E[s+1].v<=x)s++;
+  const a=E[s],b=E[s+1];
+  if(a.solid){lut.push(a.c1);continue}
+  const st=a.c2||a.c1,t=b.v>a.v?(x-a.v)/(b.v-a.v):0;
+  lut.push(st.map((c,j)=>Math.round(c+(b.c1[j]-c)*t)));
+ }
+ const key='pal:'+name;const un=meta.units||'';PALS[key]={name,min,max,k,lut,units:un||meta.product||'',dbz:/dbz/i.test(un)||(!un&&min<=20&&max>=50&&max<=100)};
+ if(![...$('#mode').options].some(o=>o.value===key)){const o=document.createElement('option');o.value=key;o.textContent='Custom · '+name;$('#mode').appendChild(o)}
+ $('#mode').value=key;$('#mode').onchange();log('Colour table loaded: '+name+' ('+E.length+' entries)');
+}
+function drawLegend(){
+ const cv=$('#legend'),x=cv.getContext('2d'),W=cv.width,bar=16,mode=$('#mode').value,P=PALS[mode];
+ x.clearRect(0,0,W,cv.height);x.font='10px ui-monospace,Consolas,monospace';x.textBaseline='top';x.fillStyle='#7d8aa0';
+ const fmt=v=>Math.abs(v)>=100?Math.round(v):+v.toFixed(1);
+ if(P){
+  for(let i=0;i<W;i++){const c=ramp(mode,P.min+(P.max-P.min)*i/(W-1));if(c){x.fillStyle='rgb('+c[0]+','+c[1]+','+c[2]+')';x.fillRect(i,0,1,bar)}}
+  x.fillStyle='#c9d1de';x.textAlign='left';x.fillText(fmt(P.min),2,bar+3);x.textAlign='center';x.fillText(fmt((P.min+P.max)/2),W/2,bar+3);x.textAlign='right';x.fillText(fmt(P.max),W-2,bar+3);
+  $('#palinfo').textContent='CUSTOM PAL · '+P.name+(P.units?' · '+P.units:'')+' · '+fmt(P.min)+' … '+fmt(P.max);
+ }else{
+  const r=RAMPS[mode],w=W/r.length;x.textAlign='left';
+  r.forEach((st,i)=>{x.fillStyle='rgb('+st[1].join(',')+')';x.fillRect(i*w,0,w+1,bar);x.fillStyle='#c9d1de';x.fillText(st[0],i*w+2,bar+3)});
+  $('#palinfo').textContent='BUILT-IN · '+(mode==='rain'?'mm/h':'dBZ');
+ }
+}
+$('#conv').onchange=()=>$('#mode').onchange();
+$('#palbtn').onclick=()=>$('#palfile').click();$('#palfile').onchange=e=>loadFiles(e.target.files);
+drawLegend();
+</script></body></html>
